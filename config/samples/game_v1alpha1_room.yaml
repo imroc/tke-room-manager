@@ -1,0 +1,10 @@
+apiVersion: game.cloud.tencent.com/v1alpha1
+kind: Room # 对应单个游戏服Pod中的单个房间进程
+metadata:
+  name: gameserver-0-port-9000
+spec:
+  podName: gameserver-0 # 房间对应的 Pod 名称，一个Pod可以有多个Room
+  type: dragon-ball # 房间类型
+status:
+  idle: true # 标记房间是否空闲，Pod关联的所有room如果全为idle，则回写到OKG中的opsState，以便让GameServer对应Pod在缩容时和发版时被保护(更新优先级低)
+  ready: true # 标记房间进程是否健康，控制器通过lease机制来维护健康状态(类似Node的kubelet长时间不上报心跳视为NotReady)
