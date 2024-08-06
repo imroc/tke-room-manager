@@ -64,6 +64,7 @@ spec:
             - --leader-elect
             - --health-probe-bind-address=:8081
             - --api-bind-address=:8000
+            - --zap-log-level=10
           image: imroc/tke-room-manager:latest
           name: manager
           securityContext:
