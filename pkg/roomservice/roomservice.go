@@ -184,11 +184,11 @@ func (rs *RoomService) AddHttpRoute(mux *http.ServeMux) error {
 			return
 		}
 		needUpdate := false
-		if status.Idle != nil && *status.Idle != *room.Status.Idle {
+		if status.Idle != nil {
 			needUpdate = true
 			room.Status.Idle = status.Idle
 		}
-		if status.Ready != nil && *status.Ready != *room.Status.Ready {
+		if status.Ready != nil {
 			needUpdate = true
 			room.Status.Ready = status.Ready
 		}

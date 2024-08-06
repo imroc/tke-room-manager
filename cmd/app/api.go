@@ -3,7 +3,7 @@ package app
 import (
 	"net/http"
 
-	"github.com/imroc/tke-room-manager/internal/sidecar/roomservice"
+	"github.com/imroc/tke-room-manager/pkg/roomservice"
 	"github.com/spf13/viper"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
