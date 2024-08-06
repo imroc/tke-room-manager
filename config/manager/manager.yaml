@@ -59,7 +59,7 @@ spec:
         #   type: RuntimeDefault
       containers:
         - command:
-            - /tke-room-manager
+            - /tke-room-controller
           args:
             - --leader-elect
             - --health-probe-bind-address=:8081
