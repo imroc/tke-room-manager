@@ -72,7 +72,7 @@ func (r *RoomReconciler) ensureHeartbeat(ctx context.Context, room *gamev1alpha1
 	if ht := room.Status.LastHeartbeatTime; !ht.IsZero() { // 上报过心跳
 		elapsed := time.Since(ht.Time)
 		if elapsed > heartbeatTimeoutDuration { // 心跳超时
-			log.FromContext(ctx).Info("room heartbeat timeout")
+			log.FromContext(ctx).Info("room heartbeat timeout, set to not ready")
 			if room.Status.Ready {
 				room.Status.Ready = false
 				err = r.Status().Update(ctx, room)
@@ -83,7 +83,7 @@ func (r *RoomReconciler) ensureHeartbeat(ctx context.Context, room *gamev1alpha1
 		} else { // 心跳未超时
 			if !room.Status.Ready { // 如果是 not ready，改成 ready
 				room.Status.Ready = true
-				log.FromContext(ctx).Info("change room status to ready")
+				log.FromContext(ctx).Info("set room status to ready")
 				err = r.Status().Update(ctx, room)
 				if err != nil {
 					return
