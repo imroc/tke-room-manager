@@ -39,14 +39,25 @@ spec:
           spec:
             description: RoomSpec defines the desired state of Room
             properties:
+              externalAddress:
+                type: string
               podName:
                 type: string
+              type:
+                type: string
+            required:
+            - externalAddress
+            - podName
+            - type
             type: object
           status:
             description: RoomStatus defines the observed state of Room
             properties:
               idle:
                 type: boolean
+              lastHeartbeatTime:
+                format: date-time
+                type: string
               ready:
                 type: boolean
             type: object

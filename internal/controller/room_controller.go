@@ -36,6 +36,9 @@ type RoomReconciler struct {
 // +kubebuilder:rbac:groups=game.cloud.tencent.com,resources=rooms,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=game.cloud.tencent.com,resources=rooms/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=game.cloud.tencent.com,resources=rooms/finalizers,verbs=update
+// +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;update
+// +kubebuilder:rbac:groups="",resources=pods/status,verbs=get
+// +kubebuilder:rbac:groups=game.kruise.io,resources=gameserver,verbs=get;list;watch;update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -58,5 +61,40 @@ func (r *RoomReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 func (r *RoomReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&gamev1alpha1.Room{}).
+		// Watches(
+		// 	&corev1.Pod{},
+		// 	handler.EnqueueRequestsFromMapFunc(r.findObjectsForPod),
+		// ).
 		Complete(r)
 }
+
+// func (r *RoomReconciler) findObjectsForPod(ctx context.Context, pod client.Object) []reconcile.Request {
+// 	list := &gamev1alpha1.RoomList{}
+// 	log := log.FromContext(ctx)
+// 	err := r.List(
+// 		ctx,
+// 		list,
+// 		client.InNamespace(pod.GetNamespace()),
+// 		client.MatchingFields{
+// 			"spec.podName": pod.GetName(),
+// 		},
+// 	)
+// 	if err != nil {
+// 		log.Error(err, "failed to list dedicatedclblisteners", "podName", pod.GetName())
+// 		return []reconcile.Request{}
+// 	}
+// 	if len(list.Items) == 0 {
+// 		return []reconcile.Request{}
+// 	}
+//
+// 	requests := make([]reconcile.Request, len(list.Items))
+// 	for i, item := range list.Items {
+// 		requests[i] = reconcile.Request{
+// 			NamespacedName: types.NamespacedName{
+// 				Name:      item.GetName(),
+// 				Namespace: item.GetNamespace(),
+// 			},
+// 		}
+// 	}
+// 	return requests
+// }

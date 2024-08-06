@@ -20,18 +20,21 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // RoomSpec defines the desired state of Room
 type RoomSpec struct {
-	PodName string `json:"podName,omitempty"`
+	PodName         string `json:"podName"`
+	Type            string `json:"type"`
+	ExternalAddress string `json:"externalAddress"`
 }
 
 // RoomStatus defines the observed state of Room
 type RoomStatus struct {
-	Idle  bool `json:"idle,omitempty"`
-	Ready bool `json:"ready,omitempty"`
+	// +optional
+	Idle *bool `json:"idle,omitempty"`
+	// +optional
+	Ready *bool `json:"ready,omitempty"`
+	// +optional
+	LastHeartbeatTime *metav1.Time `json:"lastHeartbeatTime,omitempty"`
 }
 
 // +kubebuilder:object:root=true
