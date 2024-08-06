@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	gamev1alpha1 "github.com/imroc/tke-room-manager/api/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // RoomReconciler reconciles a Room object
@@ -60,7 +61,7 @@ func (r *RoomReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctl c
 	}
 
 	// 心跳上报与 ready 状态的对账
-	if ht := room.Status.LastHeartbeatTime; !ht.IsZero() {
+	if ht := room.Status.LastHeartbeatTime; !ht.IsZero() { // 上报过心跳
 		elapsed := time.Since(ht.Time)
 		if diff := 10*time.Second - elapsed; diff < 0 { // 心跳超时
 			log.Info("room heartbeat timeout")
@@ -81,8 +82,17 @@ func (r *RoomReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctl c
 			}
 			ctl.RequeueAfter = diff // 在超时的时间重新入队，以便心跳超时后能改成 not ready
 		}
+	} else { // 还未上报过心跳
+		if room.Status.Ready { // 上报了ready状态但没有心跳，自动设置当前时间戳为心跳时间戳，10s后入队再次检查是否心跳超时
+			room.Status.LastHeartbeatTime = metav1.Now()
+			err = r.Status().Update(ctx, room)
+			if err != nil {
+				return
+			}
+			ctl.RequeueAfter = 10 * time.Second
+		}
 	}
-	return ctrl.Result{}, nil
+	return
 }
 
 // SetupWithManager sets up the controller with the Manager.
