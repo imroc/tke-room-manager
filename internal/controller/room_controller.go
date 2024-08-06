@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -59,6 +60,25 @@ func (r *RoomReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *RoomReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	indexer := mgr.GetFieldIndexer()
+	indexer.IndexField(context.Background(), &gamev1alpha1.Room{}, "status.ready", func(o client.Object) []string {
+		ready := o.(*gamev1alpha1.Room).Status.Ready
+		if ready != nil {
+			return []string{fmt.Sprint(*ready)}
+		}
+		return nil
+	})
+	indexer.IndexField(context.Background(), &gamev1alpha1.Room{}, "status.idle", func(o client.Object) []string {
+		idle := o.(*gamev1alpha1.Room).Status.Idle
+		if idle != nil {
+			return []string{fmt.Sprint(*idle)}
+		}
+		return nil
+	})
+	indexer.IndexField(context.Background(), &gamev1alpha1.Room{}, "spec.type", func(o client.Object) []string {
+		tp := o.(*gamev1alpha1.Room).Spec.Type
+		return []string{tp}
+	})
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&gamev1alpha1.Room{}).
 		// Watches(
