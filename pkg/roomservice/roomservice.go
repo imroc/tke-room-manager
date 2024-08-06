@@ -6,7 +6,8 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
-	"time"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -204,7 +205,7 @@ func (rs *RoomService) AddHttpRoute(mux *http.ServeMux) error {
 			w.Write([]byte(err.Error()))
 			return
 		}
-		room.Status.LastHeartbeatTime.Time = time.Now()
+		room.Status.LastHeartbeatTime = metav1.Now()
 		if err := rs.Status().Update(context.Background(), room); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(err.Error()))
