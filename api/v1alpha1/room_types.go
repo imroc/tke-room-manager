@@ -30,11 +30,11 @@ type RoomSpec struct {
 // RoomStatus defines the observed state of Room
 type RoomStatus struct {
 	// +optional
-	Idle *bool `json:"idle,omitempty"`
+	Idle bool `json:"idle,omitempty"`
 	// +optional
-	Ready *bool `json:"ready,omitempty"`
+	Ready bool `json:"ready,omitempty"`
 	// +optional
-	LastHeartbeatTime *metav1.Time `json:"lastHeartbeatTime,omitempty"`
+	LastHeartbeatTime metav1.Time `json:"lastHeartbeatTime,omitempty"`
 }
 
 // +kubebuilder:object:root=true

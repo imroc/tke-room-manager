@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -39,7 +40,8 @@ type RoomReconciler struct {
 // +kubebuilder:rbac:groups=game.cloud.tencent.com,resources=rooms/finalizers,verbs=update
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;update
 // +kubebuilder:rbac:groups="",resources=pods/status,verbs=get
-// +kubebuilder:rbac:groups=game.kruise.io,resources=gameserver,verbs=get;list;watch;update
+// +kubebuilder:rbac:groups=game.kruise.io,resources=gameservers,verbs=get;list;watch;update
+// +kubebuilder:rbac:groups=game.kruise.io,resources=gameservers/status,verbs=get
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -50,11 +52,36 @@ type RoomReconciler struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.18.4/pkg/reconcile
-func (r *RoomReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+func (r *RoomReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctl ctrl.Result, err error) {
+	log := log.FromContext(ctx)
+	room := &gamev1alpha1.Room{}
+	if err = r.Get(ctx, req.NamespacedName, room); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
 
-	// TODO(user): your logic here
-
+	// 心跳上报与 ready 状态的对账
+	if ht := room.Status.LastHeartbeatTime; !ht.IsZero() {
+		elapsed := time.Since(ht.Time)
+		if diff := 10*time.Second - elapsed; diff < 0 { // 心跳超时
+			log.Info("room heartbeat timeout")
+			if room.Status.Ready {
+				room.Status.Ready = false
+				err = r.Status().Update(ctx, room)
+				if err != nil {
+					return
+				}
+			}
+		} else { // 心跳未超时
+			if !room.Status.Ready { // 如果是 not ready，改成 ready
+				room.Status.Ready = true
+				err = r.Status().Update(ctx, room)
+				if err != nil {
+					return
+				}
+			}
+			ctl.RequeueAfter = diff // 在超时的时间重新入队，以便心跳超时后能改成 not ready
+		}
+	}
 	return ctrl.Result{}, nil
 }
 
@@ -63,17 +90,11 @@ func (r *RoomReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	indexer := mgr.GetFieldIndexer()
 	indexer.IndexField(context.Background(), &gamev1alpha1.Room{}, "status.ready", func(o client.Object) []string {
 		ready := o.(*gamev1alpha1.Room).Status.Ready
-		if ready != nil {
-			return []string{fmt.Sprint(*ready)}
-		}
-		return nil
+		return []string{fmt.Sprint(ready)}
 	})
 	indexer.IndexField(context.Background(), &gamev1alpha1.Room{}, "status.idle", func(o client.Object) []string {
 		idle := o.(*gamev1alpha1.Room).Status.Idle
-		if idle != nil {
-			return []string{fmt.Sprint(*idle)}
-		}
-		return nil
+		return []string{fmt.Sprint(idle)}
 	})
 	indexer.IndexField(context.Background(), &gamev1alpha1.Room{}, "spec.type", func(o client.Object) []string {
 		tp := o.(*gamev1alpha1.Room).Spec.Type

@@ -48,9 +48,15 @@ rules:
 - apiGroups:
   - game.kruise.io
   resources:
-  - gameserver
+  - gameservers
   verbs:
   - get
   - list
   - update
   - watch
+- apiGroups:
+  - game.kruise.io
+  resources:
+  - gameservers/status
+  verbs:
+  - get

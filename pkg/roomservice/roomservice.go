@@ -10,7 +10,6 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -97,8 +96,7 @@ func (rs *RoomService) GetIdleRoomsExternalAddress(namespace, tp string, num int
 	for _, room := range list.Items {
 		addr = append(addr, room.Spec.ExternalAddress)
 		num--
-		idle := false
-		room.Status.Idle = &idle
+		room.Status.Idle = false
 		needUpdate = append(needUpdate, &room)
 		if num == 0 {
 			break
@@ -184,11 +182,11 @@ func (rs *RoomService) AddHttpRoute(mux *http.ServeMux) error {
 			return
 		}
 		needUpdate := false
-		if status.Idle != nil {
+		if status.Idle != room.Status.Idle {
 			needUpdate = true
 			room.Status.Idle = status.Idle
 		}
-		if status.Ready != nil {
+		if status.Ready != room.Status.Idle {
 			needUpdate = true
 			room.Status.Ready = status.Ready
 		}
@@ -217,7 +215,7 @@ func (rs *RoomService) AddHttpRoute(mux *http.ServeMux) error {
 			w.Write([]byte(err.Error()))
 			return
 		}
-		room.Status.LastHeartbeatTime = &metav1.Time{Time: time.Now()}
+		room.Status.LastHeartbeatTime.Time = time.Now()
 		if err := rs.Status().Update(context.Background(), room); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(err.Error()))

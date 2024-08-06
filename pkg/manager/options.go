@@ -3,6 +3,12 @@ package manager
 import (
 	"crypto/tls"
 
+	"github.com/imroc/tke-room-manager/pkg/kube"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	corev1 "k8s.io/api/core/v1"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
@@ -18,6 +24,14 @@ func GetOptions(scheme *runtime.Scheme, metricsAddr, probeAddr string, enableLea
 	})
 
 	return manager.Options{
+		Cache: cache.Options{
+			ByObject: map[client.Object]cache.ByObject{
+				&corev1.Pod{}: {
+					Transform: kube.StripPodUnusedFields,
+				},
+			},
+		},
+
 		Scheme: scheme,
 		// Metrics endpoint is enabled in 'config/default/kustomization.yaml'. The Metrics options configure the server.
 		// More info:
