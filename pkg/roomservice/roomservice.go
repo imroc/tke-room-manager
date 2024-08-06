@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -169,29 +168,19 @@ func (rs *RoomService) AddHttpRoute(mux *http.ServeMux) error {
 			w.Write([]byte(err.Error()))
 			return
 		}
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
+		var status struct {
+			Idle bool `json:"idle"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&status); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(err.Error()))
 			return
 		}
-		var status gamev1alpha1.RoomStatus
-		if err := json.Unmarshal(body, &status); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
-			return
-		}
-		needUpdate := false
 		if status.Idle != room.Status.Idle {
-			needUpdate = true
-			room.Status.Idle = status.Idle
-		}
-		if status.Ready != room.Status.Idle {
-			needUpdate = true
-			room.Status.Ready = status.Ready
-		}
-		if needUpdate {
-			rs.Status().Update(context.Background(), room)
+			if err := rs.Status().Update(context.Background(), room); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(err.Error()))
+			}
 		}
 	})
 	// 注销房间
