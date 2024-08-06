@@ -67,9 +67,6 @@ spec:
             - --api-bind-address=:80
           image: imroc/tke-room-manager:latest
           name: manager
-          envFrom:
-            - secretRef:
-                name: tke-room-manager-env
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
