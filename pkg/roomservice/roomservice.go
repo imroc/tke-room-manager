@@ -198,7 +198,7 @@ func (rs *RoomService) AddHttpRoute(mux *http.ServeMux) error {
 	})
 	// 心跳上报
 	mux.HandleFunc("PUT /api/room/{namespace}/{pod}/{id}/heartbeat", func(w http.ResponseWriter, r *http.Request) {
-		room, err := rs.getRoomFromRequest(r, false)
+		room, err := rs.getRoomFromRequest(r, true)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(err.Error()))
