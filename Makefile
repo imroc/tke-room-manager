@@ -102,7 +102,7 @@ docker-build-push: docker-build docker-push
 
 .PHONY: update-controller
 update-manager: docker-build-push
-	kubectl -n kube-system rollout restart deployment/tke-extend-network-controller
+	kubectl -n tke-room-manager-system rollout restart deployment/tke-room-manager-controller-manager
 
 
 # PLATFORMS defines the target platforms for the manager image be built to provide support to multiple
