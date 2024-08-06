@@ -30,9 +30,9 @@ type RoomSpec struct {
 // RoomStatus defines the observed state of Room
 type RoomStatus struct {
 	// +optional
-	Idle bool `json:"idle,omitempty"`
+	Idle bool `json:"idle"`
 	// +optional
-	Ready bool `json:"ready,omitempty"`
+	Ready bool `json:"ready"`
 	// +optional
 	LastHeartbeatTime metav1.Time `json:"lastHeartbeatTime,omitempty"`
 }
