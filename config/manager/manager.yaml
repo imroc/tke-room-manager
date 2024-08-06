@@ -59,7 +59,7 @@ spec:
         #   type: RuntimeDefault
       containers:
         - command:
-            - /manager
+            - /tke-room-manager
           args:
             - --metrics-bind-address=:8443
             - --leader-elect
