@@ -27,7 +27,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	gamev1alpha1 "github.com/imroc/tke-room-manager/api/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // RoomReconciler reconciles a Room object
@@ -54,17 +53,26 @@ type RoomReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.18.4/pkg/reconcile
 func (r *RoomReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctl ctrl.Result, err error) {
-	log := log.FromContext(ctx)
+	_ = log.FromContext(ctx)
 	room := &gamev1alpha1.Room{}
 	if err = r.Get(ctx, req.NamespacedName, room); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-
 	// 心跳上报与 ready 状态的对账
+	ctl.RequeueAfter, err = r.ensureHeartbeat(ctx, room)
+	if err != nil {
+		return
+	}
+	return
+}
+
+const heartbeatTimeoutDuration = 10 * time.Second
+
+func (r *RoomReconciler) ensureHeartbeat(ctx context.Context, room *gamev1alpha1.Room) (requeueAfter time.Duration, err error) {
 	if ht := room.Status.LastHeartbeatTime; !ht.IsZero() { // 上报过心跳
 		elapsed := time.Since(ht.Time)
-		if diff := 10*time.Second - elapsed; diff < 0 { // 心跳超时
-			log.Info("room heartbeat timeout")
+		if elapsed > heartbeatTimeoutDuration { // 心跳超时
+			log.FromContext(ctx).Info("room heartbeat timeout")
 			if room.Status.Ready {
 				room.Status.Ready = false
 				err = r.Status().Update(ctx, room)
@@ -75,21 +83,20 @@ func (r *RoomReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctl c
 		} else { // 心跳未超时
 			if !room.Status.Ready { // 如果是 not ready，改成 ready
 				room.Status.Ready = true
+				log.FromContext(ctx).Info("change room status to ready")
 				err = r.Status().Update(ctx, room)
 				if err != nil {
 					return
 				}
 			}
-			ctl.RequeueAfter = diff // 在超时的时间重新入队，以便心跳超时后能改成 not ready
+			requeueAfter = heartbeatTimeoutDuration - elapsed // 在超时的时间重新入队，以便心跳超时后能改成 not ready
 		}
-	} else { // 还未上报过心跳
-		if room.Status.Ready { // 上报了ready状态但没有心跳，自动设置当前时间戳为心跳时间戳，10s后入队再次检查是否心跳超时
-			room.Status.LastHeartbeatTime = metav1.Now()
-			err = r.Status().Update(ctx, room)
-			if err != nil {
-				return
-			}
-			ctl.RequeueAfter = 10 * time.Second
+	} else if room.Status.Ready { // ready 状态但没有心跳，强行设为not ready
+		room.Status.Ready = false
+		log.FromContext(ctx).Info("ready status without heartbeat, set to not ready")
+		err = r.Status().Update(ctx, room)
+		if err != nil {
+			return
 		}
 	}
 	return
