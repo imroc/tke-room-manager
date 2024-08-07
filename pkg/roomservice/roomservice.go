@@ -18,6 +18,7 @@ import (
 
 	gamev1alpha1 "github.com/imroc/tke-room-manager/api/v1alpha1"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/cluster"
@@ -51,17 +52,6 @@ func New(cls cluster.Cluster, scheme *runtime.Scheme) (*RoomService, error) {
 	}, nil
 }
 
-func getRoomParamFromRequest(r *http.Request) (namespace, pod, id string, err error) {
-	namespace = r.PathValue("namespace")
-	pod = r.PathValue("pod")
-	id = r.PathValue("id")
-	if namespace == "" || pod == "" || id == "" {
-		err = errors.New("namespace, pod or id is empty")
-		return
-	}
-	return
-}
-
 func (rs *RoomService) getRoomFromRequest(r *http.Request, fromClient bool) (*gamev1alpha1.Room, error) {
 	namespace, pod, id, err := getRoomParamFromRequest(r)
 	if err != nil {
@@ -70,7 +60,7 @@ func (rs *RoomService) getRoomFromRequest(r *http.Request, fromClient bool) (*ga
 	room := &gamev1alpha1.Room{}
 	name := getRoomName(pod, id)
 	if fromClient {
-		if err := rs.Get(context.Background(), client.ObjectKey{Namespace: namespace, Name: name}, room); err != nil {
+		if err := rs.GetAPIReader().Get(context.Background(), client.ObjectKey{Namespace: namespace, Name: name}, room); err != nil {
 			return nil, err
 		}
 	} else {
@@ -171,27 +161,33 @@ func (rs *RoomService) AddHttpRoute(mux *http.ServeMux) {
 	})
 	// 更新房间状态（是否空闲、是否ready）
 	mux.HandleFunc("PUT /api/room/{namespace}/{pod}/{id}/status", func(w http.ResponseWriter, r *http.Request) {
-		room, err := rs.getRoomFromRequest(r, true)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
-			return
-		}
-		var status struct {
-			Idle bool `json:"idle"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&status); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
-			return
-		}
-		if status.Idle != room.Status.Idle {
-			slog.Info("update room status", "idle", status.Idle, "room", room.Name)
-			room.Status.Idle = status.Idle
-			if err := rs.Status().Update(context.Background(), room); err != nil {
+		handle := func() error {
+			room, err := rs.getRoomFromRequest(r, true)
+			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte(err.Error()))
+				return err
 			}
+			var status struct {
+				Idle bool `json:"idle"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&status); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(err.Error()))
+				return err
+			}
+			if status.Idle != room.Status.Idle {
+				slog.Info("update room status", "idle", status.Idle, "room", room.Name)
+				room.Status.Idle = status.Idle
+				if err := rs.Status().Update(context.Background(), room); err != nil {
+					w.WriteHeader(http.StatusInternalServerError)
+					w.Write([]byte(err.Error()))
+				}
+			}
+			return nil
+		}
+		if err := retry.RetryOnConflict(retry.DefaultBackoff, handle); err != nil {
+			slog.Error("failed to retry", "error", err.Error())
 		}
 	})
 	// 注销房间
