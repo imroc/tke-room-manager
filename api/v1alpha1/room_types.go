@@ -39,6 +39,11 @@ type RoomStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Pod",type="string",JSONPath=".spec.podName",description="pod name of the related room"
+// +kubebuilder:printcolumn:name="Type",type="string",JSONPath=".spec.type",description="room type"
+// +kubebuilder:printcolumn:name="Address",type="string",JSONPath=".spec.externalAddress",description="external address of the room"
+// +kubebuilder:printcolumn:name="Idle",type="boolean",JSONPath=".status.idle",description="idle status of the room"
+// +kubebuilder:printcolumn:name="Ready",type="boolean",JSONPath=".status.ready",description="ready status of the room"
 
 // Room is the Schema for the rooms API
 type Room struct {

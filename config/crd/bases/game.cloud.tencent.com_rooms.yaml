@@ -14,7 +14,28 @@ spec:
     singular: room
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - description: pod name of the related room
+      jsonPath: .spec.podName
+      name: Pod
+      type: string
+    - description: room type
+      jsonPath: .spec.type
+      name: Type
+      type: string
+    - description: external address of the room
+      jsonPath: .spec.externalAddress
+      name: Address
+      type: string
+    - description: idle status of the room
+      jsonPath: .status.idle
+      name: Idle
+      type: boolean
+    - description: ready status of the room
+      jsonPath: .status.ready
+      name: Ready
+      type: boolean
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: Room is the Schema for the rooms API
