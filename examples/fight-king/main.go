@@ -69,6 +69,23 @@ func main() {
 		stopFightRoom(intId)
 	})
 
+	http.HandleFunc("GET /stopbeat/{id}", func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+		if id == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("id is empty"))
+			return
+		}
+		intId, err := strconv.Atoi(id)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("id is not a number"))
+			return
+		}
+		slog.Info("stop heartbeat", "id", id)
+		alive[intId] = false
+	})
+
 	http.HandleFunc("GET /start/{id}", func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 		if id == "" {
@@ -170,6 +187,7 @@ func heartbeat(id int) {
 		if _, ok := alive[id]; !ok {
 			break
 		}
+		slog.Info("heartbeat", "id", id)
 		_, err := req.Put(heartbeatApiAddr)
 		if err != nil {
 			slog.Error("failed to heartbeat", "id", id, "error", err.Error())
