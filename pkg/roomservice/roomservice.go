@@ -85,9 +85,11 @@ func (rs *RoomService) GetIdleRoomsExternalAddress(namespace, tp string, num int
 	err = rs.List(
 		context.Background(), list,
 		client.InNamespace(namespace),
-		client.MatchingFields{"spec.type": tp},
-		client.MatchingFields{"status.idle": "true"},
-		client.MatchingFields{"status.ready": "true"},
+		client.MatchingFields{
+			"spec.type":    tp,
+			"status.idle":  "true",
+			"status.ready": "true",
+		},
 	)
 	if err != nil {
 		return
