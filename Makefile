@@ -110,6 +110,10 @@ docker-build-push-server: ## Build docker image with the manager.
 	$(CONTAINER_TOOL) build -t ${SERVER_IMG} -f Dockerfile.server .
 	$(CONTAINER_TOOL) push ${SERVER_IMG}
 
+.PHONY: update-server
+update-server: docker-build-push-server
+	kubectl -n tke-room-manager-system rollout restart deployment/tke-room-manager-server
+
 
 # PLATFORMS defines the target platforms for the manager image be built to provide support to multiple
 # architectures. (i.e. make docker-buildx IMG=myregistry/mypoperator:0.0.1). To use this option you need to:
