@@ -102,7 +102,7 @@ docker-push: ## Push docker image with the manager.
 docker-build-push: docker-build docker-push
 
 .PHONY: update-controller
-update-manager: docker-build-push
+update-controller: docker-build-push
 	kubectl -n tke-room-manager-system rollout restart deployment/tke-room-manager-controller-manager
 
 .PHONY: docker-build-push-server
