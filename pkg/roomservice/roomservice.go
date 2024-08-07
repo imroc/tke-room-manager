@@ -80,7 +80,12 @@ func (rs *RoomService) getRoomFromRequest(r *http.Request, fromClient bool) (*ga
 	return room, nil
 }
 
-func (rs *RoomService) GetIdleRoomsExternalAddress(namespace, tp string, num int) (addr []string, err error) {
+type ExternalAddr struct {
+	Addr string `json:"addr"`
+	Pod  string `json:"pod"`
+}
+
+func (rs *RoomService) GetIdleRoomsExternalAddress(namespace, tp string, num int) (addr []ExternalAddr, err error) {
 	list := &gamev1alpha1.RoomList{}
 	err = rs.List(
 		context.Background(), list,
@@ -96,7 +101,7 @@ func (rs *RoomService) GetIdleRoomsExternalAddress(namespace, tp string, num int
 	}
 	needUpdate := []*gamev1alpha1.Room{}
 	for _, room := range list.Items {
-		addr = append(addr, room.Spec.ExternalAddress)
+		addr = append(addr, ExternalAddr{Addr: room.Spec.ExternalAddress, Pod: room.Spec.PodName})
 		num--
 		room.Status.Idle = false
 		needUpdate = append(needUpdate, &room)
@@ -240,9 +245,13 @@ func (rs *RoomService) AddHttpRoute(mux *http.ServeMux) {
 			w.Write([]byte(err.Error()))
 			return
 		}
-		if err := json.NewEncoder(w).Encode(addrs); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
+		if len(addrs) > 0 {
+			if err := json.NewEncoder(w).Encode(addrs); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(err.Error()))
+			}
+		} else {
+			w.WriteHeader(http.StatusNotFound)
 		}
 	})
 }
