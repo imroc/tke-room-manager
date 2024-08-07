@@ -107,7 +107,7 @@ update-manager: docker-build-push
 
 .PHONY: docker-build-push-server
 docker-build-push-server: ## Build docker image with the manager.
-	$(CONTAINER_TOOL) build -t ${SERVER_IMG} .
+	$(CONTAINER_TOOL) build -t ${SERVER_IMG} -f Dockerfile.server .
 	$(CONTAINER_TOOL) push ${SERVER_IMG}
 
 
