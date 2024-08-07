@@ -52,6 +52,17 @@ func New(cls cluster.Cluster, scheme *runtime.Scheme) (*RoomService, error) {
 	}, nil
 }
 
+func getRoomParamFromRequest(r *http.Request) (namespace, pod, id string, err error) {
+	namespace = r.PathValue("namespace")
+	pod = r.PathValue("pod")
+	id = r.PathValue("id")
+	if namespace == "" || pod == "" || id == "" {
+		err = errors.New("namespace, pod or id is empty")
+		return
+	}
+	return
+}
+
 func (rs *RoomService) getRoomFromRequest(r *http.Request, fromClient bool) (*gamev1alpha1.Room, error) {
 	namespace, pod, id, err := getRoomParamFromRequest(r)
 	if err != nil {
