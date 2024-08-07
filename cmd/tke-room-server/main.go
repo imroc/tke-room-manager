@@ -19,9 +19,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	if err := cls.Start(context.Background()); err != nil {
-		panic(err)
-	}
+	go func() {
+		if err := cls.Start(context.Background()); err != nil {
+			panic(err)
+		}
+	}()
 	rs, err := roomservice.New(cls, schemes.Scheme)
 	if err != nil {
 		panic(err)
