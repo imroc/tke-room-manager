@@ -154,9 +154,13 @@ func setIdleState(id int, idle bool) {
 		Idle bool `json:"idle"`
 	}
 	status.Idle = idle
-	_, err := req.R().SetBodyJsonMarshal(&status).Put(statusApiAddr)
+	resp, err := req.R().SetBodyJsonMarshal(&status).Put(statusApiAddr)
 	if err != nil {
 		slog.Error("failed to set idle status", "id", id, "idle", idle, "error", err.Error())
+		return
+	}
+	if resp.StatusCode != 200 {
+		slog.Error("failed to set idle status", "id", id, "idle", idle, "error", resp.String(), "status", resp.StatusCode)
 	}
 }
 

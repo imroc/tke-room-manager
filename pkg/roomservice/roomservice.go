@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -185,7 +186,7 @@ func (rs *RoomService) AddHttpRoute(mux *http.ServeMux) {
 			return
 		}
 		if status.Idle != room.Status.Idle {
-			log.Info("update room status", "idle", status.Idle, "room", *room)
+			slog.Info("update room status", "idle", status.Idle, "room", room.Name)
 			room.Status.Idle = status.Idle
 			if err := rs.Status().Update(context.Background(), room); err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
