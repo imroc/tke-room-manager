@@ -175,30 +175,27 @@ func (rs *RoomService) AddHttpRoute(mux *http.ServeMux) {
 		handle := func() error {
 			room, err := rs.getRoomFromRequest(r, true)
 			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(err.Error()))
 				return err
 			}
 			var status struct {
 				Idle bool `json:"idle"`
 			}
 			if err := json.NewDecoder(r.Body).Decode(&status); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(err.Error()))
 				return err
 			}
 			if status.Idle != room.Status.Idle {
 				slog.Info("update room status", "idle", status.Idle, "room", room.Name)
 				room.Status.Idle = status.Idle
 				if err := rs.Status().Update(context.Background(), room); err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					w.Write([]byte(err.Error()))
+					return err
 				}
 			}
 			return nil
 		}
 		if err := retry.RetryOnConflict(retry.DefaultBackoff, handle); err != nil {
 			slog.Error("failed to retry", "error", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
 		}
 	})
 	// 注销房间
