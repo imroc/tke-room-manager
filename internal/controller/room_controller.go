@@ -18,7 +18,6 @@ package controller
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -107,18 +106,7 @@ func (r *RoomReconciler) ensureHeartbeat(ctx context.Context, room *gamev1alpha1
 // SetupWithManager sets up the controller with the Manager.
 func (r *RoomReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	indexer := mgr.GetFieldIndexer()
-	indexer.IndexField(context.Background(), &gamev1alpha1.Room{}, "status.ready", func(o client.Object) []string {
-		ready := o.(*gamev1alpha1.Room).Status.Ready
-		return []string{fmt.Sprint(ready)}
-	})
-	indexer.IndexField(context.Background(), &gamev1alpha1.Room{}, "status.idle", func(o client.Object) []string {
-		idle := o.(*gamev1alpha1.Room).Status.Idle
-		return []string{fmt.Sprint(idle)}
-	})
-	indexer.IndexField(context.Background(), &gamev1alpha1.Room{}, "spec.type", func(o client.Object) []string {
-		tp := o.(*gamev1alpha1.Room).Spec.Type
-		return []string{tp}
-	})
+	gamev1alpha1.IndexField(indexer)
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&gamev1alpha1.Room{}).
 		// Watches(

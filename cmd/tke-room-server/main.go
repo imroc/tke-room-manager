@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	gamev1alpha1 "github.com/imroc/tke-room-manager/api/v1alpha1"
 	"github.com/imroc/tke-room-manager/pkg/roomservice"
 	"github.com/imroc/tke-room-manager/pkg/schemes"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -19,6 +20,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	gamev1alpha1.IndexField(cls.GetFieldIndexer())
 	go func() {
 		if err := cls.Start(context.Background()); err != nil {
 			panic(err)
