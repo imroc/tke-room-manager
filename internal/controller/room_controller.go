@@ -70,9 +70,9 @@ const heartbeatTimeoutDuration = 10 * time.Second
 
 func (r *RoomReconciler) ensureHeartbeat(ctx context.Context, room *gamev1alpha1.Room) (requeueAfter time.Duration, err error) {
 	if ht := room.Status.LastHeartbeatTime; !ht.IsZero() { // 上报过心跳
-		if room.Status.Ready {
-			elapsed := time.Since(ht.Time)
-			if elapsed > heartbeatTimeoutDuration { // 心跳超时且仍为 ready 状态，改成 not ready
+		elapsed := time.Since(ht.Time)
+		if elapsed > heartbeatTimeoutDuration { // 心跳超时
+			if room.Status.Ready { // 且仍为 ready 状态，改成 not ready
 				log.FromContext(ctx).Info("room heartbeat timeout, set to not ready")
 				if room.Status.Ready {
 					room.Status.Ready = false
@@ -81,17 +81,17 @@ func (r *RoomReconciler) ensureHeartbeat(ctx context.Context, room *gamev1alpha1
 						return
 					}
 				}
-			} else { // 心跳未超时
-				if !room.Status.Ready { // 如果是 not ready，改成 ready
-					room.Status.Ready = true
-					log.FromContext(ctx).Info("set room status to ready")
-					err = r.Status().Update(ctx, room)
-					if err != nil {
-						return
-					}
-				}
-				requeueAfter = heartbeatTimeoutDuration - elapsed // 在超时的时间重新入队，以便心跳超时后能改成 not ready
 			}
+		} else { // 心跳未超时
+			if !room.Status.Ready { // 如果是 not ready，改成 ready
+				room.Status.Ready = true
+				log.FromContext(ctx).Info("set room status to ready")
+				err = r.Status().Update(ctx, room)
+				if err != nil {
+					return
+				}
+			}
+			requeueAfter = heartbeatTimeoutDuration - elapsed // 在超时的时间重新入队，以便心跳超时后能改成 not ready
 		}
 	} else if room.Status.Ready { // ready 状态但没有心跳，强行设为not ready
 		room.Status.Ready = false
