@@ -180,6 +180,7 @@ func (rs *RoomService) AddHttpRoute(mux *http.ServeMux) {
 			return
 		}
 		if status.Idle != room.Status.Idle {
+			room.Status.Idle = status.Idle
 			if err := rs.Status().Update(context.Background(), room); err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte(err.Error()))
