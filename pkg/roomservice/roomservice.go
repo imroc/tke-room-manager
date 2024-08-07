@@ -114,7 +114,7 @@ func (rs *RoomService) GetIdleRoomsExternalAddress(namespace, tp string, num int
 	return
 }
 
-func (rs *RoomService) AddHttpRoute(mux *http.ServeMux) error {
+func (rs *RoomService) AddHttpRoute(mux *http.ServeMux) {
 	// 注册房间信息，上报外部地址信息
 	mux.HandleFunc("POST /api/room/{namespace}/{pod}/{id}", func(w http.ResponseWriter, r *http.Request) {
 		namespace, podName, id, err := getRoomParamFromRequest(r)
@@ -242,7 +242,6 @@ func (rs *RoomService) AddHttpRoute(mux *http.ServeMux) error {
 			w.Write([]byte(err.Error()))
 		}
 	})
-	return nil
 }
 
 func getRoomName(pod, id string) string {

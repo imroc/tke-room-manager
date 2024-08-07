@@ -1,5 +1,6 @@
 # Image URL to use all building/pushing image targets
-IMG ?= imroc/tke-room-manager:latest
+IMG ?= imroc/tke-room-controller:latest
+SERVER_IMG ?= imroc/tke-room-server:latest
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.30.0
 
@@ -103,6 +104,11 @@ docker-build-push: docker-build docker-push
 .PHONY: update-controller
 update-manager: docker-build-push
 	kubectl -n tke-room-manager-system rollout restart deployment/tke-room-manager-controller-manager
+
+.PHONY: docker-build-push-server
+docker-build-push-server: ## Build docker image with the manager.
+	$(CONTAINER_TOOL) build -t ${SERVER_IMG} .
+	$(CONTAINER_TOOL) push ${SERVER_IMG}
 
 
 # PLATFORMS defines the target platforms for the manager image be built to provide support to multiple
