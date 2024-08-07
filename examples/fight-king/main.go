@@ -99,6 +99,7 @@ func startFightRoom(id int) error {
 		return err
 	}
 	alive[id] = true
+	time.Sleep(2 * time.Second)
 	// 上报心跳
 	go heartbeat(id)
 	// 房间准备就绪，设置为空闲

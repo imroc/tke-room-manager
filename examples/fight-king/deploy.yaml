@@ -1,0 +1,45 @@
+apiVersion: game.kruise.io/v1alpha1
+kind: GameServerSet
+metadata:
+  name: fight-king
+  namespace: fight-king
+spec:
+  replicas: 3
+  updateStrategy:
+    rollingUpdate:
+      podUpdatePolicy: InPlaceIfPossible
+  gameServerTemplate:
+    spec:
+      containers:
+        - image: imroc/fight-king:latest
+          name: fight
+          env:
+            - name: ROOM_SERVER_ADDR
+              value: "http://tke-room-manager-server.tke-room-manager-system.svc.cluster.local:8000"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          volumeMounts:
+            - name: podinfo
+              mountPath: /etc/podinfo
+      volumes:
+        - name: podinfo
+          downwardAPI:
+            items:
+              - path: "external-address-room-1"
+                fieldRef:
+                  fieldPath: metadata.annotations['networking.cloud.tencent.com/external-address-room-1']
+              - path: "external-address-room-2"
+                fieldRef:
+                  fieldPath: metadata.annotations['networking.cloud.tencent.com/external-address-room-2']
+              - path: "external-address-room-3"
+                fieldRef:
+                  fieldPath: metadata.annotations['networking.cloud.tencent.com/external-address-room-3']
+              - path: "external-address-room-4"
+                fieldRef:
+                  fieldPath: metadata.annotations['networking.cloud.tencent.com/external-address-room-4']

@@ -12,3 +12,7 @@ docker-push: ## Push docker image with the manager.
 
 .PHONY: docker-build-push
 docker-build-push: docker-build docker-push
+
+.PHONY: update
+update: docker-build-push
+	kubectl -n fight-king delete pod --all
