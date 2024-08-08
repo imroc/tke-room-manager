@@ -1,0 +1,20 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: fight-king-scaledobject
+  namespace: fight-king
+spec:
+  scaleTargetRef:
+    apiVersion: game.kruise.io/v1alpha1
+    kind: GameServerSet
+    name: fight-king
+  pollingInterval: 5
+  minReplicaCount: 1
+  maxReplicaCount: 100
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://vmsingle-monitoring-victoria-metrics-k8s-stack.monitoring.svc.cluster.local:8429
+        query: |
+          tke_room_num{type="fight", idle="false"} / sum(tke_room_num{type="fight"})
+        threshold: "0.7" # 保持30%的空闲房间冗余

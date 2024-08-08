@@ -1,0 +1,18 @@
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: tke-rooms
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/component: monitoring
+spec:
+  endpoints:
+    - honorLabels: true
+      port: metrics
+      interval: 5s
+  namespaceSelector:
+    matchNames:
+      - tke-room-manager-system
+  selector:
+    matchLabels:
+      control-plane: controller-manager
