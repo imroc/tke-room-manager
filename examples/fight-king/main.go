@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/imroc/req/v3"
@@ -16,7 +17,14 @@ import (
 var (
 	roomServerAddr, namespace, podName string
 	alive                              map[int]bool = make(map[int]bool)
+	mux                                sync.Mutex
 )
+
+func setAlive(id int, a bool) {
+	mux.Lock()
+	defer mux.Unlock()
+	alive[id] = a
+}
 
 func main() {
 	roomServerAddr = os.Getenv("ROOM_SERVER_ADDR")
@@ -83,7 +91,7 @@ func main() {
 			return
 		}
 		slog.Info("stop heartbeat", "id", id)
-		alive[intId] = false
+		setAlive(intId, false)
 	})
 
 	http.HandleFunc("GET /start/{id}", func(w http.ResponseWriter, r *http.Request) {
@@ -115,7 +123,7 @@ func startFightRoom(id int) error {
 	if err := registerRoom(id); err != nil {
 		return err
 	}
-	alive[id] = true
+	setAlive(id, true)
 	time.Sleep(2 * time.Second)
 	// 上报心跳
 	go heartbeat(id)
@@ -127,7 +135,7 @@ func startFightRoom(id int) error {
 // 停止指定id的游戏房间
 func stopFightRoom(id int) {
 	slog.Info("stop room", "id", id)
-	alive[id] = false
+	setAlive(id, false)
 	deleteApiAddr := fmt.Sprintf("%s/api/room/%s/%s/%d", roomServerAddr, namespace, podName, id)
 	_, err := req.R().Delete(deleteApiAddr)
 	if err != nil {
