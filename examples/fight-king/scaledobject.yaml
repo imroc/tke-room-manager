@@ -11,6 +11,15 @@ spec:
   pollingInterval: 5
   minReplicaCount: 1
   maxReplicaCount: 100
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 0
+          policies:
+            - type: Percent
+              value: 100
+              periodSeconds: 5
   triggers:
     - type: prometheus
       metadata:
