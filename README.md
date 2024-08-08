@@ -4,7 +4,7 @@ TKE 房间管理器，用于游戏战斗服、会议等房间类场景，可支�
 
 ## 与 OpenKruiseGame 联动
 
-对于游戏场景，可自动联动 OpenKruiseGame，在业务发版更新或缩容时，优先删除所有房间都空闲的 Pod，避免占用中的房间被中断，实现不停服更新和丝滑的弹性伸缩。
+对于游戏场景，可自动联动 [OpenKruiseGame](https://openkruise.io/zh/kruisegame/introduction/)，在业务发版更新或缩容时，优先删除所有房间都空闲的 Pod，避免占用中的房间被中断，实现不停服更新和丝滑的弹性伸缩。
 
 ## 根据房间占用比例自动伸缩
 
