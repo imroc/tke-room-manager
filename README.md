@@ -1,114 +1,122 @@
 # tke-room-manager
-// TODO(user): Add simple overview of use/purpose
 
-## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+TKE 房间管理器，用于游戏战斗服、会议等房间类场景，可支持单 Pod 多房间的管理。
 
-## Getting Started
+## 与 OpenKruiseGame 联动
 
-### Prerequisites
-- go version v1.22.0+
-- docker version 17.03+.
-- kubectl version v1.11.3+.
-- Access to a Kubernetes v1.11.3+ cluster.
+对于游戏场景，可自动联动 OpenKruiseGame，在业务发版更新或缩容时，优先删除所有房间都空闲的 Pod，避免占用中的房间被中断，实现不停服更新和丝滑的弹性伸缩。
 
-### To Deploy on the cluster
-**Build and push your image to the location specified by `IMG`:**
+## 根据房间占用比例自动伸缩
 
-```sh
-make docker-build docker-push IMG=<some-registry>/tke-room-manager:tag
+提供了房间信息的 Prometheus 监控指标:
+
+```promql
+# HELP tke_room_num
+# TYPE tke_room_num gauge
+tke_room_num{idle="false",type="fight"} 4
+tke_room_num{idle="true",type="fight"} 4
 ```
 
-**NOTE:** This image ought to be published in the personal registry you specified.
-And it is required to have access to pull the image from the working environment.
-Make sure you have the proper permission to the registry if the above commands don’t work.
+可通过 KEDA 配置 Prometheus 触发器的 `ScaledObject` 来实现根据房间占用比例自动伸缩:
 
-**Install the CRDs into the cluster:**
+```yaml
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: fight-king-scaledobject
+  namespace: fight-king
+spec:
+  scaleTargetRef:
+    apiVersion: game.kruise.io/v1alpha1
+    kind: GameServerSet
+    name: fight-king
+  pollingInterval: 5
+  minReplicaCount: 1
+  maxReplicaCount: 100
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://vmsingle-monitoring-victoria-metrics-k8s-stack.monitoring.svc.cluster.local:8429
+        query: |
+          tke_room_num{type="fight", idle="false"} / sum(tke_room_num{type="fight"})
+        threshold: "0.7" # 房间占用比扩缩容阈值：70%
 
-```sh
-make install
 ```
 
-**Deploy the Manager to the cluster with the image specified by `IMG`:**
+## API 接入
 
-```sh
-make deploy IMG=<some-registry>/tke-room-manager:tag
+### 通用路径参数说明
+
+| 参数      | 说明                                           |
+| --------- | ---------------------------------------------- |
+| namespace | 命名空间（可通过Downward API从环境变量中获取） |
+| pod       | Pod 名称（可通过Downward API从环境变量中获取） |
+| id        | 房间 ID（通常为Pod中的房间序号，如0,1,2,3）    |
+
+### 注册房间信息
+
+```txt
+POST /api/room/{namespace}/{pod}/{id}
+
+{
+  "externalAddress": "2.2.2.2:9889",
+  "type": "fight"
+}
 ```
 
-> **NOTE**: If you encounter RBAC errors, you may need to grant yourself cluster-admin
-privileges or be logged in as admin.
+请求体参数说明：
 
-**Create instances of your solution**
-You can apply the samples (examples) from the config/sample:
+| 参数            | 说明                                                            |
+| --------------- | --------------------------------------------------------------- |
+| externalAddress | 房间对外暴露的地址（通常Pod通过Downward API获取自身的外部地址） |
+| type            | 房间类型（如有多个游戏，或游戏分多种类型房间，通过此字段区分）  |
 
-```sh
-kubectl apply -k config/samples/
+
+### 更新房间状态(是否空闲)
+
+```txt
+PUT /api/room/{namespace}/{pod}/{id}/status
+
+{
+  "idle": true
+}
 ```
 
->**NOTE**: Ensure that the samples has default values to test it out.
+请求体参数说明：
 
-### To Uninstall
-**Delete the instances (CRs) from the cluster:**
+| 参数 | 说明     |
+| ---- | -------- |
+| idle | 是否空闲 |
 
-```sh
-kubectl delete -k config/samples/
+1. 房间就绪后需上报房间为空闲状态，以待匹配时被分配给玩家。
+2. 在游戏或会议结束后，如后面还要复用该房间，需再次调用此接口上报房间状态为空闲状态。
+
+### 上报心跳
+
+```txt
+PUT /api/room/{namespace}/{pod}/{id}/heartbeat
 ```
 
-**Delete the APIs(CRDs) from the cluster:**
+### 获取房间信息
 
-```sh
-make uninstall
+```txt
+GET /api/room/idle/{namespace}/{type}/{num}
 ```
 
-**UnDeploy the controller from the cluster:**
+路径参数说明：
 
-```sh
-make undeploy
+| 参数 | 说明                                                                           |
+| ---- | ------------------------------------------------------------------------------ |
+| type | 房间类型                                                                       |
+| num  | 需要获取的房间数量 |
+
+
+> 最终返回的数量小于等于 `num`，在空闲房间不足时会小于 `num`，配置了基于房间占用比例的伸缩策略时，会自动扩容，业务侧可不断重试以获取新扩出的空闲房间。
+
+### 注销房间
+
+```txt
+DELETE /api/room/{namespace}/{pod}/{id}
 ```
 
-## Project Distribution
-
-Following are the steps to build the installer and distribute this project to users.
-
-1. Build the installer for the image built and published in the registry:
-
-```sh
-make build-installer IMG=<some-registry>/tke-room-manager:tag
-```
-
-NOTE: The makefile target mentioned above generates an 'install.yaml'
-file in the dist directory. This file contains all the resources built
-with Kustomize, which are necessary to install this project without
-its dependencies.
-
-2. Using the installer
-
-Users can just run kubectl apply -f <URL for YAML BUNDLE> to install the project, i.e.:
-
-```sh
-kubectl apply -f https://raw.githubusercontent.com/<org>/tke-room-manager/<tag or branch>/dist/install.yaml
-```
-
-## Contributing
-// TODO(user): Add detailed information on how you would like others to contribute to this project
-
-**NOTE:** Run `make help` for more information on all potential `make` targets
-
-More information can be found via the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html)
-
-## License
-
-Copyright 2024 imroc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
+> 通常只用于房间占用结束后，自动启动新房间进程来替代的场景，需在游戏或会议结束后，调此接口注销房间，新房间进程启动后再调用注册房间的接口注册新房间。

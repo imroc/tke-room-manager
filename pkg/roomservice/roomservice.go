@@ -170,7 +170,7 @@ func (rs *RoomService) AddHttpRoute(mux *http.ServeMux) {
 			w.Write([]byte(err.Error()))
 		}
 	})
-	// 更新房间状态（是否空闲、是否ready）
+	// 更新房间状态（是否空闲）
 	mux.HandleFunc("PUT /api/room/{namespace}/{pod}/{id}/status", func(w http.ResponseWriter, r *http.Request) {
 		var status struct {
 			Idle bool `json:"idle"`
