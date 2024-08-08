@@ -20,12 +20,14 @@ import (
 	"context"
 	"time"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	gamev1alpha1 "github.com/imroc/tke-room-manager/api/v1alpha1"
+	"github.com/imroc/tke-room-manager/pkg/prom"
 )
 
 // RoomReconciler reconciles a Room object
@@ -55,8 +57,14 @@ func (r *RoomReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctl c
 	_ = log.FromContext(ctx)
 	room := &gamev1alpha1.Room{}
 	if err = r.Get(ctx, req.NamespacedName, room); err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+		if apierrors.IsNotFound(err) { // room删除
+			prom.Delete(req.Namespace, req.Name)
+			return ctrl.Result{}, nil
+		} else {
+			return ctrl.Result{}, err
+		}
 	}
+	prom.Count(room)
 	// 心跳上报与 ready 状态的对账
 	ctl.RequeueAfter, err = r.ensureHeartbeat(ctx, room)
 	if err != nil {

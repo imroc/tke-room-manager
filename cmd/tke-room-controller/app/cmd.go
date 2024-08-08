@@ -15,6 +15,7 @@ var RootCommand = cobra.Command{
 	Use:   "tke-room-manager",
 	Short: "A room manager for TKE",
 	Run: func(cmd *cobra.Command, args []string) {
+		go runPromApi()
 		runManager()
 	},
 }
