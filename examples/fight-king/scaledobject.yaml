@@ -16,5 +16,5 @@ spec:
       metadata:
         serverAddress: http://vmsingle-monitoring-victoria-metrics-k8s-stack.monitoring.svc.cluster.local:8429
         query: |
-          tke_room_num{type="fight", idle="false"} / sum(tke_room_num{type="fight"})
+          tke_room_num{type="fight", idle="false"} / 4
         threshold: "0.7" # 保持30%的空闲房间冗余
