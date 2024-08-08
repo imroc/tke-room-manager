@@ -97,6 +97,10 @@ PUT /api/room/{namespace}/{pod}/{id}/status
 PUT /api/room/{namespace}/{pod}/{id}/heartbeat
 ```
 
+说明：
+1. 房间进程需定期上报心跳，以表明房间进程存活，否则会自动标记房间为不健康，获取空闲房间时将会被排除在外。
+2. 心跳超时时间默认为10秒。
+
 ### 获取房间信息
 
 ```txt
